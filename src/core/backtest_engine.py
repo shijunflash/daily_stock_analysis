@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import re
 from typing import Any, Dict, Iterable, List, Optional, Protocol, Sequence
 
 
@@ -72,7 +73,13 @@ class BacktestEngine:
     )
     _HOLD_KEYWORDS = (
         "持有",
+        "震荡观望",
+        "洗盘观察",
+        "持有观察",
         "hold",
+        "range-bound watch",
+        "shakeout watch",
+        "hold and watch",
     )
     _WAIT_KEYWORDS = (
         "观望",
@@ -109,7 +116,9 @@ class BacktestEngine:
         Priority: bearish/wait -> cash, bullish/hold -> long, unrecognized -> cash.
         """
         text = cls._normalize_text(operation_advice)
-        if cls._matches_intent(text, cls._BEARISH_KEYWORDS) or cls._matches_intent(text, cls._WAIT_KEYWORDS):
+        if cls._matches_intent(text, cls._BEARISH_KEYWORDS):
+            return "cash"
+        if cls._matches_intent(text, cls._WAIT_KEYWORDS):
             return "cash"
         if cls._matches_intent(text, cls._BULLISH_KEYWORDS) or cls._matches_intent(text, cls._HOLD_KEYWORDS):
             return "long"
@@ -363,14 +372,39 @@ class BacktestEngine:
         if not text:
             return False
         for kw in keywords:
+            if not kw:
+                continue
             if text == kw:
                 return True
-        for kw in keywords:
-            idx = text.find(kw)
-            if idx == -1:
+
+            keyword = kw.lower().strip()
+            if not keyword:
                 continue
-            if not cls._is_negated(text[:idx]):
-                return True
+
+            # Use word-boundary matching for ASCII keywords to avoid
+            # false positives such as "watch" matching "wait".
+            if bool(re.search(r"[a-z]", keyword)):
+                match = re.search(
+                    rf"(?<![a-zA-Z0-9_]){re.escape(keyword)}(?![a-zA-Z0-9_])",
+                    text,
+                )
+                if not match:
+                    continue
+                if not cls._is_negated(text[: match.start()]):
+                    return True
+                continue
+
+            # For non-ASCII terms (Chinese), avoid matching fragments embedded
+            # in another Chinese word to reduce false positives.
+            if re.search(r"[\u4e00-\u9fff]", keyword):
+                match = re.search(
+                    rf"(?<![\u4e00-\u9fff]){re.escape(keyword)}(?![\u4e00-\u9fff])",
+                    text,
+                )
+                if match and not cls._is_negated(text[: match.start()]):
+                    return True
+                continue
+
         return False
 
     @classmethod

@@ -179,6 +179,27 @@ def test_downgrades_sell_near_support_without_sustained_outflow() -> None:
     assert "不宜仅因单日下跌直接卖出" in result.risk_warning
 
 
+def test_preserves_sell_signal_when_significant_risk_exists_near_support() -> None:
+    result = _result(
+        decision_type="sell",
+        operation_advice="卖出",
+        score=30,
+        current_price=30.4,
+        change_pct=-2.1,
+    )
+    result.risk_warning = "重大利空消息：公司发布重大减持计划"
+    result.dashboard["intelligence"] = {"risk_alerts": ["股东高位减持预告"]}
+
+    stabilize_decision_with_structure(
+        result,
+        SimpleNamespace(support_levels=[30.0], resistance_levels=[34.0]),
+        _fund_flow(main=800_000, five_day=1_200_000),
+    )
+
+    assert result.decision_type == "sell"
+    assert result.operation_advice == "卖出"
+
+
 def test_refines_hold_pullback_near_support_as_shakeout_watch() -> None:
     result = _result(
         decision_type="hold",

@@ -75,6 +75,34 @@ class BacktestEngineTestCase(unittest.TestCase):
         self.assertEqual(res["direction_expected"], "flat")
         self.assertEqual(res["outcome"], "loss")
 
+    def test_range_bound_watch_is_treated_as_hold_long_path(self):
+        self.assertEqual(
+            BacktestEngine.infer_position_recommendation("震荡观望"),
+            "long",
+        )
+        self.assertEqual(
+            BacktestEngine.infer_direction_expected("Range-bound watch"),
+            "not_down",
+        )
+        self.assertEqual(
+            BacktestEngine.infer_position_recommendation("Range-bound watch"),
+            "long",
+        )
+
+    def test_shakeout_watch_is_treated_as_hold_long_path(self):
+        self.assertEqual(
+            BacktestEngine.infer_position_recommendation("洗盘观察"),
+            "long",
+        )
+        self.assertEqual(
+            BacktestEngine.infer_direction_expected("Shakeout watch"),
+            "not_down",
+        )
+        self.assertEqual(
+            BacktestEngine.infer_position_recommendation("Hold and watch"),
+            "long",
+        )
+
     def test_hold_win_when_flat(self):
         cfg = EvaluationConfig(eval_window_days=3, neutral_band_pct=2.0)
         bars = self._bars(date(2024, 1, 1), [100.5, 100.2, 101], highs=[101, 101, 101], lows=[99.8, 99.9, 100])

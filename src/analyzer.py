@@ -252,6 +252,30 @@ def _is_value_placeholder(v: Any) -> bool:
     return s in ("", "n/a", "na", "数据缺失", "未知", "data unavailable", "unknown", "tbd")
 
 
+_RISK_WARNING_PLACEHOLDER_TEXTS = {
+    "",
+    "n/a",
+    "na",
+    "none",
+    "null",
+    "unknown",
+    "tbd",
+    "暂无",
+    "待补充",
+    "数据缺失",
+    "未知",
+    "无",
+}
+
+
+def _is_meaningful_text(value: Any) -> bool:
+    text = str(value).strip() if value is not None else ""
+    if not text:
+        return False
+    lowered = text.strip().lower()
+    return lowered not in _RISK_WARNING_PLACEHOLDER_TEXTS
+
+
 def _safe_float(v: Any, default: float = 0.0) -> float:
     """Safely convert to float; return default on failure. Private helper for chip fill."""
     if v is None:
@@ -671,6 +695,8 @@ def stabilize_decision_with_structure(
             and support * 1.03 < current_price < resistance * 0.97
         )
 
+        has_significant_risk = _has_structural_risk_alert(result)
+
         if decision_type == "buy":
             if near_resistance and flow_bias != "inflow":
                 _downgrade_to_structural_hold(
@@ -706,7 +732,7 @@ def stabilize_decision_with_structure(
                     flow_bias=flow_bias,
                 )
         elif decision_type == "sell":
-            if near_support and flow_bias != "outflow":
+            if near_support and (flow_bias != "outflow") and not has_significant_risk:
                 _downgrade_to_structural_hold(
                     result,
                     language,
@@ -717,7 +743,7 @@ def stabilize_decision_with_structure(
                     resistance=resistance,
                     flow_bias=flow_bias,
                 )
-            elif flow_bias == "inflow" and not broke_support:
+            elif flow_bias == "inflow" and not broke_support and not has_significant_risk:
                 _downgrade_to_structural_hold(
                     result,
                     language,
@@ -752,8 +778,42 @@ def stabilize_decision_with_structure(
                     resistance=resistance,
                     flow_bias=flow_bias,
                 )
+        _sync_stability_dashboard_fields(result)
     except Exception as exc:
         logger.warning("[decision_stability] skipped: %s", exc)
+
+
+def _has_structural_risk_alert(result: "AnalysisResult") -> bool:
+    dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
+
+    risk_text = getattr(result, "risk_warning", "")
+    if _is_meaningful_text(risk_text):
+        return True
+
+    intelligence = dashboard.get("intelligence") if isinstance(dashboard, dict) else None
+    if isinstance(intelligence, dict):
+        risk_alerts = intelligence.get("risk_alerts")
+        if isinstance(risk_alerts, str):
+            if _is_meaningful_text(risk_alerts):
+                return True
+        elif isinstance(risk_alerts, (list, tuple, set)):
+            if any(_is_meaningful_text(item) for item in risk_alerts):
+                return True
+
+    core_conclusion = dashboard.get("core_conclusion") if isinstance(dashboard, dict) else None
+    if isinstance(core_conclusion, dict):
+        signal_type = str(core_conclusion.get("signal_type", "")).strip()
+        if "风险" in signal_type:
+            return True
+    return False
+
+
+def _sync_stability_dashboard_fields(result: "AnalysisResult") -> None:
+    dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
+    result.dashboard = dashboard
+    dashboard["sentiment_score"] = getattr(result, "sentiment_score", None)
+    dashboard["operation_advice"] = getattr(result, "operation_advice", None)
+    dashboard["decision_type"] = getattr(result, "decision_type", None)
 
 
 def _as_dict_for_decision_guard(value: Any) -> Dict[str, Any]:
