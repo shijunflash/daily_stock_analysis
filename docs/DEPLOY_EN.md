@@ -396,7 +396,7 @@ git push
 #### 4. Manual Test Run
 
 1. Go to repo page → **Actions** tab
-2. Select **"Daily Stock Analysis"** workflow
+2. Select the **"00 每日股票分析"** workflow
 3. Click **"Run workflow"** button
 4. Select run mode:
    - `full` - Full analysis (stocks + market)

@@ -58,6 +58,12 @@ def _load_daily_analysis_env() -> dict[str, str]:
     return analyze_step["env"]
 
 
+def test_daily_analysis_workflow_name_is_prioritized_in_actions_list() -> None:
+    workflow = yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+
+    assert workflow["name"] == "00 每日股票分析"
+
+
 def test_daily_analysis_maps_all_provider_template_channels() -> None:
     templates = _extract_provider_templates()
     env = _load_daily_analysis_env()
