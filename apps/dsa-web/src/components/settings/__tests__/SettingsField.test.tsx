@@ -118,8 +118,8 @@ describe('SettingsField', () => {
       />
     );
 
-    const select = screen.getByLabelText('NOTIFICATION_MIN_SEVERITY');
-    expect(screen.getByRole('option', { name: 'Not set' })).not.toBeDisabled();
+    const select = screen.getByLabelText('最小通知级别');
+    expect(screen.getByRole('option', { name: '未设置' })).not.toBeDisabled();
     expect(screen.queryByRole('option', { name: '请选择' })).not.toBeInTheDocument();
 
     fireEvent.change(select, { target: { value: '' } });
