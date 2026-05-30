@@ -42,7 +42,7 @@ For English contributors: please fill in English. All fields marked (EN) accept 
 
 必须填写以下之一 / Fill in one of:
 
-- `Refs #<issue_number>`（文档/治理类 PR 推荐）
+- `Refs #<issue_number>`（文档/治理类 PR 推荐；边界澄清类可写 `Refs #1497`）
 - `Fixes #<issue_number>`（运行时行为交付且确定可关闭 Issue 时使用）
 - 无 Issue 时说明原因与验收标准 / If no issue, explain the motivation and acceptance criteria
 
