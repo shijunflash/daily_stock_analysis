@@ -16,6 +16,9 @@ For English contributors: please fill in English. All fields marked (EN) accept 
 > 该约束用于防止将本类文档澄清 PR 误标为 `feat` 或使用 `Closes` / `Fixes` 自动关闭 issue。请确保仅保留 `docs` 一项勾选。
 
 > 若该 PR 为 docs-only（含本 issue 边界澄清），请务必在 Issue Link 仅填写 `Refs #<issue_number>` 或空，不得填写 `Closes` / `Fixes`（避免误关闭 Issue）。
+> 示例（本 Issue #1497 的边界澄清）：
+> - PR Type 仅勾选 `docs`
+> - Issue Link 使用 `Refs #1497`
 
 ## Background And Problem
 
