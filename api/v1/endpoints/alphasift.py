@@ -6,9 +6,11 @@ from __future__ import annotations
 import importlib
 import inspect
 import math
+import os
 import subprocess
 import sys
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -262,6 +264,7 @@ def _is_adapter_available(adapter_status: Any) -> bool:
 
 
 def _import_alphasift() -> Any:
+    _prepare_alphasift_runtime_env()
     try:
         return importlib.import_module(ALPHASIFT_DSA_ADAPTER_MODULE)
     except Exception as exc:
@@ -272,6 +275,19 @@ def _import_alphasift() -> Any:
                 "message": f"AlphaSift 未安装或未挂载到当前 Python 环境，无法导入 {ALPHASIFT_DSA_ADAPTER_MODULE}：{exc}",
             },
         ) from exc
+
+
+def _prepare_alphasift_runtime_env() -> None:
+    if os.getenv("STRATEGIES_DIR"):
+        return
+
+    spec = importlib.util.find_spec("alphasift")
+    if not spec or not spec.origin:
+        return
+
+    package_strategies_dir = Path(spec.origin).resolve().parent / "strategies"
+    if package_strategies_dir.is_dir():
+        os.environ["STRATEGIES_DIR"] = str(package_strategies_dir)
 
 
 def _get_dsa_adapter() -> Any:

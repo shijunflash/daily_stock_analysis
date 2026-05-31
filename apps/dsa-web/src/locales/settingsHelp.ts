@@ -186,10 +186,10 @@ const settingsHelpZhCN: SettingsHelpMap = {
   },
   'settings.data_source.ALPHASIFT_INSTALL_SPEC': {
     title: 'AlphaSift 安装来源',
-    summary: '配置 Web 开启 AlphaSift 时允许自动安装的受信任 pip 来源。',
-    usage: '默认固定到已验证的 ZhuLinsen/alphasift commit；自动安装只接受默认受信任来源。',
-    valueNotes: ['自动安装需要已开启管理员认证并持有有效管理员会话。', '自定义本地路径、wheel 或其他来源需先手动安装到当前 Python 环境。', '该字段按敏感值处理，设置页不会直接展示完整内容。'],
-    impact: ['影响 AlphaSift 自动安装和适配层可用性检查。'],
+    summary: '配置源码部署或打包阶段使用的受信任 AlphaSift pip 来源。',
+    usage: '默认固定到已验证的 ZhuLinsen/alphasift commit；桌面发布包会在构建阶段预置依赖，运行时开关只控制是否启用。',
+    valueNotes: ['源码部署或自定义本地路径、wheel 时，请先安装到当前后端 Python 环境。', '该字段按敏感值处理，设置页不会直接展示完整内容。'],
+    impact: ['影响 AlphaSift 适配层可用性检查和桌面打包预置。'],
     notes: ['请确认来源可信；AlphaSift 是第三方选股能力，启用前应理解相关风险。'],
   },
   'settings.data_source.REALTIME_SOURCE_PRIORITY': {
@@ -1122,10 +1122,10 @@ const settingsHelpEnUS: SettingsHelpMap = {
   },
   'settings.data_source.ALPHASIFT_INSTALL_SPEC': {
     title: 'AlphaSift Install Source',
-    summary: 'Configures the trusted pip source used when Web enables AlphaSift automatically.',
-    usage: 'Defaults to a verified ZhuLinsen/alphasift commit. Automatic install only accepts the trusted default source.',
-    valueNotes: ['Automatic install requires admin authentication and a valid admin session.', 'Custom local paths, wheels, or other sources must be installed manually into the current Python environment first.', 'This field is treated as sensitive, so the settings page does not show the full value.'],
-    impact: ['Affects AlphaSift automatic installation and adapter availability checks.'],
+    summary: 'Configures the trusted AlphaSift pip source used by source deployments or desktop packaging.',
+    usage: 'Defaults to a verified ZhuLinsen/alphasift commit. Desktop releases bundle AlphaSift at build time, and the runtime switch only enables or disables it.',
+    valueNotes: ['For source deployments, custom local paths, or wheels, install AlphaSift into the backend Python environment first.', 'This field is treated as sensitive, so the settings page does not show the full value.'],
+    impact: ['Affects AlphaSift adapter availability checks and desktop packaging.'],
     notes: ['Use a trusted source only. AlphaSift is a third-party screening capability, so understand the risk before enabling it.'],
   },
   'settings.data_source.REALTIME_SOURCE_PRIORITY': {

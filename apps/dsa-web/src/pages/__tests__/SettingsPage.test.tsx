@@ -954,8 +954,9 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />);
 
-    expect(screen.getByText('已配置（敏感值已隐藏）')).toBeInTheDocument();
+    expect(screen.getByText('启用第三方项目 AlphaSift 提供的选股能力。')).toBeInTheDocument();
     expect(screen.queryByText(privateInstallSpec)).not.toBeInTheDocument();
+    expect(screen.queryByText(/安装来源/)).not.toBeInTheDocument();
   });
 
   it('refreshes AlphaSift state when the enable flow fails', async () => {

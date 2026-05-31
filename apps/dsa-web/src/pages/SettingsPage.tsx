@@ -200,8 +200,6 @@ function formatEnvBackupFilename(isDesktopRuntime: boolean) {
   return `${isDesktopRuntime ? 'dsa-desktop-env' : 'dsa-env'}_${date}_${time}.env`;
 }
 
-const TRUSTED_ALPHASIFT_INSTALL_SPEC = 'git+https://github.com/ZhuLinsen/alphasift.git@b2ca66dd47001b9a09890cfe21c2b18c7219ccf5';
-
 const SettingsPage: React.FC = () => {
   const { authEnabled, passwordChangeable } = useAuth();
   const [envBackupActionError, setEnvBackupActionError] = useState<ParsedApiError | null>(null);
@@ -319,15 +317,7 @@ const SettingsPage: React.FC = () => {
   const rawActiveItems = itemsByCategory[activeCategory] || [];
   const rawActiveItemMap = new Map(rawActiveItems.map((item) => [item.key, String(item.value ?? '')]));
   const alphasiftItem = (itemsByCategory.data_source || []).find((item) => item.key === 'ALPHASIFT_ENABLED');
-  const alphasiftInstallSpecItem = (itemsByCategory.data_source || []).find((item) => item.key === 'ALPHASIFT_INSTALL_SPEC');
   const alphasiftEnabled = String(alphasiftItem?.value ?? '').trim().toLowerCase() === 'true';
-  const alphasiftInstallSpec = String(alphasiftInstallSpecItem?.value || '').trim();
-  const alphasiftInstallSpecAllowed = alphasiftInstallSpec === TRUSTED_ALPHASIFT_INSTALL_SPEC;
-  const alphasiftInstallSpecLabel = !alphasiftInstallSpec
-    ? '未配置'
-    : alphasiftInstallSpecAllowed
-      ? '受信任 AlphaSift GitHub 仓库'
-      : '已配置（敏感值已隐藏）';
   const hasConfiguredChannels = Boolean((rawActiveItemMap.get('LLM_CHANNELS') || '').trim());
   const hasLitellmConfig = Boolean((rawActiveItemMap.get('LITELLM_CONFIG') || '').trim());
 
@@ -488,7 +478,7 @@ const SettingsPage: React.FC = () => {
       if (nextEnabled) {
         await alphasiftApi.enable();
         await refreshAfterExternalSave(['ALPHASIFT_ENABLED']);
-        setAlphaSiftActionSuccess('已开启 AlphaSift 选股，并完成依赖检查。');
+        setAlphaSiftActionSuccess('已开启 AlphaSift 选股。');
         return;
       }
 
@@ -528,7 +518,7 @@ const SettingsPage: React.FC = () => {
       if (isAlphaSiftEnabled) {
         await alphasiftApi.enable();
         await refreshAfterExternalSave(['ALPHASIFT_ENABLED']);
-        setAlphaSiftActionSuccess('已开启 AlphaSift 选股，并完成依赖检查。');
+        setAlphaSiftActionSuccess('已开启 AlphaSift 选股。');
         return;
       }
 
@@ -679,7 +669,7 @@ const SettingsPage: React.FC = () => {
             {alphasiftItem ? (
               <SettingsSectionCard
                 title="AlphaSift 选股"
-                description="使用 AlphaSift 项目提供的 screen() 能力；开启时会自动检查并安装 Python 依赖。"
+                description="启用第三方项目 AlphaSift 提供的选股能力。"
               >
                 <div className="flex flex-col gap-4 rounded-2xl border settings-border bg-background/35 px-4 py-4 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -687,19 +677,8 @@ const SettingsPage: React.FC = () => {
                       {alphasiftEnabled ? '选股已开启' : '选股未开启'}
                     </p>
                     <p className="mt-1 text-xs leading-6 text-muted-text">
-                      配置项：<code className="rounded bg-background/60 px-1 py-0.5 font-mono">ALPHASIFT_ENABLED</code>
-                      。开启后可在左侧导航进入“选股”，实际策略和数据处理仍由 AlphaSift 自己负责。
+                      开启后左侧导航会显示“选股”，策略、数据处理和候选生成来自 AlphaSift，DSA 只负责调用与展示。
                     </p>
-                    <p className="mt-1 text-xs leading-6 text-muted-text">
-                      安装来源：<span className="rounded bg-background/60 px-1 py-0.5">{alphasiftInstallSpecLabel}</span>
-                    </p>
-                    {!alphasiftInstallSpecAllowed ? (
-                      <p className="mt-1 text-xs leading-6 text-amber-700 dark:text-amber-300">
-                        {alphasiftInstallSpec
-                          ? '安装来源已隐藏；自动安装仅接受受信任 AlphaSift GitHub 仓库，自定义来源需先手动安装。'
-                          : '请把 ALPHASIFT_INSTALL_SPEC 配置为受信任的 AlphaSift GitHub 仓库；本地路径或 wheel 需先手动安装。'}
-                      </p>
-                    ) : null}
                     <p className="mt-2 text-xs leading-6 text-amber-700 dark:text-amber-300">
                       风险提示：选股结果仅用于研究和辅助判断，不构成投资建议；市场有风险，交易决策和损益由使用者自行承担。
                     </p>

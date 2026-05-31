@@ -507,7 +507,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
     "ALPHASIFT_INSTALL_SPEC": {
         "title": "AlphaSift Install Spec",
-        "description": "Pinned pip install spec used when enabling AlphaSift. Automatic install only accepts this trusted source.",
+        "description": "Pinned AlphaSift pip install spec used by source deployments and desktop packaging.",
         "category": "data_source",
         "data_type": "string",
         "ui_control": "password",
