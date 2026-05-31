@@ -282,6 +282,24 @@ class TestPipelineReportRouteFiltering(unittest.TestCase):
         pipeline.notifier.send_to_email.assert_called_once_with("report:000001")
         pipeline.notifier.send_to_telegram.assert_not_called()
 
+    def test_telegram_image_route_converts_chat_report(self):
+        pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
+        pipeline.notifier = _FakeRoutedNotifier(
+            [NotificationChannel.TELEGRAM],
+            image_channels={"telegram"},
+        )
+        pipeline.config = SimpleNamespace(stock_email_groups=[])
+        results = [SimpleNamespace(code="000001")]
+
+        with patch("src.md2img.markdown_to_image", return_value=b"png") as mock_md2img:
+            pipeline._send_notifications(results, ReportType.SIMPLE)
+
+        mock_md2img.assert_called_once_with(
+            "chat-report", max_chars=pipeline.notifier._markdown_to_image_max_chars
+        )
+        pipeline.notifier._send_telegram_photo.assert_called_once_with(b"png")
+        pipeline.notifier.send_to_telegram.assert_not_called()
+
     def test_ntfy_route_uses_text_report_without_image_conversion(self):
         pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
         pipeline.notifier = _FakeRoutedNotifier(

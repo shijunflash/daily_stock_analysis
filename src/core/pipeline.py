@@ -2562,7 +2562,14 @@ class StockAnalysisPipeline:
                     )
 
                 image_bytes = None
-                if non_wechat_channels_needing_image:
+                chat_image_bytes = None
+                chat_image_channels = {
+                    NotificationChannel.TELEGRAM,
+                    NotificationChannel.SLACK,
+                }
+                report_image_channels = non_wechat_channels_needing_image - chat_image_channels
+                im_channels_needing_image = non_wechat_channels_needing_image & chat_image_channels
+                if report_image_channels:
                     image_bytes = markdown_to_image(
                         report, max_chars=self.notifier._markdown_to_image_max_chars
                     )
@@ -2574,6 +2581,20 @@ class StockAnalysisPipeline:
                     else:
                         logger.warning(
                             "Markdown 转图片失败，将回退为文本发送。请检查 MARKDOWN_TO_IMAGE_CHANNELS 配置并安装 %s",
+                            _get_md2img_hint(),
+                        )
+                if im_channels_needing_image:
+                    chat_image_bytes = markdown_to_image(
+                        chat_report, max_chars=self.notifier._markdown_to_image_max_chars
+                    )
+                    if chat_image_bytes:
+                        logger.info(
+                            "IM 版 Markdown 已转换为图片，将向 %s 发送图片",
+                            [ch.value for ch in im_channels_needing_image],
+                        )
+                    else:
+                        logger.warning(
+                            "IM 版 Markdown 转图片失败，将回退为文本发送。请检查 MARKDOWN_TO_IMAGE_CHANNELS 配置并安装 %s",
                             _get_md2img_hint(),
                         )
 
@@ -2634,11 +2655,14 @@ class StockAnalysisPipeline:
                         )
                     elif channel == NotificationChannel.TELEGRAM:
                         def _send_telegram_report() -> bool:
+                            telegram_image_bytes = (
+                                chat_image_bytes if channel in chat_image_channels else image_bytes
+                            )
                             use_image = self.notifier._should_use_image_for_channel(
-                                channel, image_bytes
+                                channel, telegram_image_bytes
                             )
                             if use_image:
-                                return self.notifier._send_telegram_photo(image_bytes)
+                                return self.notifier._send_telegram_photo(telegram_image_bytes)
                             return self.notifier.send_to_telegram(chat_report)
 
                         channel_success, channel_error = _send_channel_safely(
@@ -2826,12 +2850,15 @@ class StockAnalysisPipeline:
                         )
                     elif channel == NotificationChannel.SLACK:
                         def _send_slack_report() -> bool:
+                            slack_image_bytes = (
+                                chat_image_bytes if channel in chat_image_channels else image_bytes
+                            )
                             use_image = self.notifier._should_use_image_for_channel(
-                                channel, image_bytes
+                                channel, slack_image_bytes
                             )
                             if use_image and self.notifier._slack_bot_token and self.notifier._slack_channel_id:
                                 return self.notifier._send_slack_image(
-                                    image_bytes, fallback_content=chat_report
+                                    slack_image_bytes, fallback_content=chat_report
                                 )
                             return self.notifier.send_to_slack(chat_report)
 
