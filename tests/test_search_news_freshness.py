@@ -875,11 +875,12 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
                 max_searches=2,
             )
 
-        self.assertGreaterEqual(mock_search.call_count, 1)
+        self.assertEqual(
+            [call[1]["days"] for call in mock_search.call_args_list],
+            [3, service.ANALYTICAL_INTEL_LOOKBACK_DAYS],
+        )
         for call in mock_search.call_args_list:
-            kwargs = call[1]
-            self.assertEqual(kwargs["days"], 3)
-            self.assertEqual(kwargs["max_results"], 6)  # target 3 -> overfetch 6
+            self.assertEqual(call[1]["max_results"], 6)  # target 3 -> overfetch 6
 
         self.assertEqual([item.title for item in intel["latest_news"].results], ["fresh"])
         self.assertEqual(
@@ -888,6 +889,42 @@ class SearchNewsFreshnessTestCase(unittest.TestCase):
         )
         self.assertIsNone(intel["market_analysis"].results[0].published_date)
         self.assertEqual(intel["market_analysis"].results[1].published_date, expected_analysis_date)
+
+    def test_search_comprehensive_intel_widens_analytical_provider_windows(self) -> None:
+        """Market analysis and earnings should request a longer provider lookback."""
+        fresh_dt = datetime.now(timezone.utc).replace(microsecond=0)
+        fresh_text = fresh_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        service, mock_search = self._create_service_with_mock_provider(
+            news_max_age_days=3,
+            news_strategy_profile="short",
+        )
+        mock_search.side_effect = [
+            _response([_result("latest_news", fresh_text)]),
+            _response([_result("market_analysis", None)]),
+            _response([_result("risk_check", fresh_text)]),
+            _response([_result("announcement_item", fresh_text)]),
+            _response([_result("earnings", None)]),
+        ]
+
+        with patch("src.search_service.time.sleep"):
+            intel = service.search_comprehensive_intel(
+                stock_code="600519",
+                stock_name="贵州茅台",
+                max_searches=5,
+            )
+
+        self.assertIn("earnings", intel)
+        self.assertEqual(
+            [call[1]["days"] for call in mock_search.call_args_list],
+            [
+                3,
+                service.ANALYTICAL_INTEL_LOOKBACK_DAYS,
+                3,
+                3,
+                service.ANALYTICAL_INTEL_LOOKBACK_DAYS,
+            ],
+        )
 
     def test_search_comprehensive_intel_etf_risk_check_keeps_unknown_dates(self) -> None:
         """ETF risk_check should avoid strict freshness filtering."""
