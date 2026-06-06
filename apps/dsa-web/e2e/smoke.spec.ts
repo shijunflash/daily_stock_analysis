@@ -2,6 +2,19 @@ import { expect, test, type Page } from '@playwright/test';
 
 const smokePassword = process.env.DSA_WEB_SMOKE_PASSWORD;
 
+
+async function captureSmokeScreenshot(page: Page, testInfo: { outputPath: (name: string) => string }, name: string, options: { fullPage?: boolean } = {}) {
+  const path = testInfo.outputPath(`${name}.png`);
+  await page.screenshot({
+    path,
+    fullPage: options.fullPage ?? true,
+  });
+  await testInfo.attach(name, {
+    path,
+    contentType: 'image/png',
+  });
+}
+
 async function login(page: Page) {
   test.skip(!smokePassword, 'Set DSA_WEB_SMOKE_PASSWORD to run authenticated smoke tests.');
 
@@ -41,7 +54,7 @@ async function login(page: Page) {
 test.describe('web smoke', () => {
   test.use({ locale: 'zh-CN' });
 
-  test('login page renders password form', async ({ page }) => {
+  test('login page renders password form', async ({ page }, testInfo) => {
     await page.goto('/login');
     await page.waitForLoadState('domcontentloaded');
 
@@ -54,9 +67,11 @@ test.describe('web smoke', () => {
 
     // Check for submit button
     await expect(page.getByRole('button', { name: /授权进入工作台|完成设置并登录/ })).toBeVisible();
+
+    await captureSmokeScreenshot(page, testInfo, 'smoke-login-page-zh');
   });
 
-  test('home page shows analysis entry and history panel after login', async ({ page }) => {
+  test('home page shows analysis entry and history panel after login', async ({ page }, testInfo) => {
     await login(page);
 
     const stockInput = page.getByPlaceholder('输入股票代码或名称，如 600519、贵州茅台、AAPL');
@@ -68,6 +83,8 @@ test.describe('web smoke', () => {
     await stockInput.fill('600519');
     const analyzeButton = page.getByRole('button', { name: '分析', exact: true });
     await expect(analyzeButton).toBeVisible();
+
+    await captureSmokeScreenshot(page, testInfo, 'smoke-home-page-zh', { fullPage: true });
   });
 
   test('chat page allows entering a question and starts a request', async ({ page }) => {
@@ -110,7 +127,7 @@ test.describe('web smoke', () => {
     await expect(composer).not.toHaveAttribute('title', /.+/);
   });
 
-  test('mobile shell opens navigation drawer after login', async ({ page }) => {
+  test('mobile shell opens navigation drawer after login', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await login(page);
 
@@ -122,9 +139,11 @@ test.describe('web smoke', () => {
 
     // Check if navigation is visible
     await expect(page.getByRole('link', { name: '回测' })).toBeVisible({ timeout: 5000 });
+
+    await captureSmokeScreenshot(page, testInfo, 'smoke-mobile-shell-nav');
   });
 
-  test('settings page renders title and save actions after login', async ({ page }) => {
+  test('settings page renders title and save actions after login', async ({ page }, testInfo) => {
     await login(page);
 
     // Navigate to settings page by clicking the link
@@ -136,9 +155,11 @@ test.describe('web smoke', () => {
     await expect(page.getByRole('heading', { name: '系统设置' })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: '重置' })).toBeVisible();
     await expect(page.getByRole('button', { name: /保存配置/ })).toBeVisible();
+
+    await captureSmokeScreenshot(page, testInfo, 'smoke-settings-page-zh');
   });
 
-  test('language switch updates UI copy and persists after page refresh', async ({ page }) => {
+  test('language switch updates UI copy and persists after page refresh', async ({ page }, testInfo) => {
     await login(page);
 
     const languageToggle = page.getByRole('button', { name: '切换界面语言' });
@@ -152,6 +173,7 @@ test.describe('web smoke', () => {
     await expect(englishLanguageToggle).toBeVisible();
     await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
+    await captureSmokeScreenshot(page, testInfo, 'smoke-home-page-en');
 
     expect(await page.evaluate(() => localStorage.getItem('dsa.uiLanguage'))).toBe('en');
 
@@ -169,6 +191,8 @@ test.describe('web smoke', () => {
     await expect(page.getByRole('heading', { name: 'System settings' })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: 'Send test' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('DSA notification test');
+
+    await captureSmokeScreenshot(page, testInfo, 'smoke-settings-page-en');
   });
 
   test('backtest page renders filter controls after login', async ({ page }) => {
