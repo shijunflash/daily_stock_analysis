@@ -25,30 +25,33 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Inject URL
-        run: |
-          APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
-          sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
-            apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
+      - uses: android-actions/setup-android@v3
 
       - name: Install SDK
         run: |
           echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --install "platforms;android-34" "build-tools;34.0.0" 2>&1 || true
           echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --licenses 2>&1 || true
 
-      - name: Generate wrapper
+      - name: Inject URL
         run: |
-          cd apps/dsa-android
-          gradle wrapper --gradle-version 8.2
+          APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
+          echo "URL: $APP_URL"
+          sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
+            apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
+
+      - name: Install Gradle via sdkman
+        run: |
+          curl -s "https://get.sdkman.io" | bash 2>/dev/null
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install gradle 8.2 2>&1 | tail -5
 
       - name: Build APK
         run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
           cd apps/dsa-android
           export ANDROID_HOME=$ANDROID_SDK_ROOT
-          ./gradlew assembleRelease --no-daemon 2>&1 | tail -30
+          gradle wrapper --gradle-version 8.2
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tail -30
 
       - uses: actions/upload-artifact@v4
         if: success()
