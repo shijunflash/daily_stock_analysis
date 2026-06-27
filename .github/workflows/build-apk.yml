@@ -49,22 +49,12 @@ jobs:
           cd apps/dsa-android
           export ANDROID_HOME=$ANDROID_SDK_ROOT
           gradle assembleRelease --no-daemon --stacktrace 2>&1
-          echo "=== CHECKING APK ==="
-          find /home -name "*.apk" 2>/dev/null
-          find . -name "*.apk" 2>/dev/null
-          ls -la app/build/outputs/ 2>/dev/null || echo "No outputs dir"
+          echo "=== SEARCHING FOR APK ==="
+          find . -name "*.apk" -type f 2>/dev/null
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: /opt/gradle-8.2/build.log
-          retention-days: 7
-
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: dsa-app-release
-          path: |
-            apps/dsa-android/app/build/outputs/apk/release/*.apk
-            apps/dsa-android/app/build/outputs/**/*.apk
+          name: dsa-apk
+          path: "**/*.apk"
           retention-days: 30
