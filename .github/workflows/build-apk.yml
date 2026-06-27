@@ -1,7 +1,6 @@
 name: Build Android APK
 
 on:
-  # 手动触发
   workflow_dispatch:
     inputs:
       app_url:
@@ -9,7 +8,6 @@ on:
         required: false
         default: 'http://47.101.171.145/app'
         type: string
-  # 推送到 dsa-android 目录时自动触发
   push:
     paths:
       - 'apps/dsa-android/**'
@@ -31,6 +29,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Inject App URL into source
         run: |
           if [ -n "${{ github.event.inputs.app_url }}" ]; then
@@ -39,25 +40,17 @@ jobs:
             APP_URL="http://47.101.171.145/app"
           fi
           echo "Building with APP_URL=$APP_URL"
-          # Update the URL in MainActivity.java
           sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
             apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
-
-      - name: Grant execute permission for gradlew
-        run: |
-          # Generate gradle wrapper if not present
-          cd apps/dsa-android
-          if [ ! -f gradlew ]; then
-            # Download gradle wrapper
-            curl -sL "https://services.gradle.org/distributions/gradle-8.2-bin.zip" -o /tmp/gradle.zip
-            unzip -q /tmp/gradle.zip -d /tmp/gradle
-            /tmp/gradle/gradle-8.2/bin/gradle wrapper
-          fi
-          chmod +x gradlew
 
       - name: Build APK (Release)
         run: |
           cd apps/dsa-android
+          # Generate Gradle wrapper if needed
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version=8.2
+          fi
+          chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
