@@ -15,44 +15,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    defaults:
+      run:
+        working-directory: apps/dsa-android
 
-      - name: Set up JDK 17
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK components
-        run: |
-          yes | sdkmanager "platforms;android-34" "build-tools;34.0.0" 2>&1 | tail -5 || echo "sdkmanager not available, trying alternatives"
-
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2
-
-      - name: Inject App URL into source
+      - name: Inject App URL
         run: |
           APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
-          echo "Building with APP_URL=$APP_URL"
           sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
-            apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
+            app/src/main/java/com/dsa/app/MainActivity.java
 
-      - name: Build APK (Release)
-        run: |
-          cd apps/dsa-android
-          gradle assembleRelease --no-daemon --stacktrace
+      - name: Build APK
+        uses: digreatbrian/build-apk@v1.1
+        with:
+          working-directory: apps/dsa-android
 
-      - name: Upload APK artifact
-        if: success()
+      - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: dsa-app-release
           path: apps/dsa-android/app/build/outputs/apk/release/*.apk
