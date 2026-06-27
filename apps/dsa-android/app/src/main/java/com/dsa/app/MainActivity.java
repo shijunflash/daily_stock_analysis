@@ -8,24 +8,22 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import androidx.webkit.WebSettings;
-import androidx.webkit.WebViewFeature;
 
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
-    private String APP_URL = "http://47.101.171.145/app";
-    private static final String BACKUP_URL = "http://47.101.171.145/";
+    private String APP_URL = "http://47.101.171.145/app.html";
+    private static final String BACKUP_URL = "http://47.101.171.145/app";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -45,11 +43,14 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setBuiltInZoomControls(true);
+        settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+        // 禁用 WebView 自身的边缘效果（下拉发光）
+        webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
         // WebView 客户端
         webView.setWebViewClient(new WebViewClient() {
@@ -68,12 +69,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                // 外部链接走浏览器
                 if (url.startsWith("http://") || url.startsWith("https://")) {
                     if (url.contains("47.101.171.145") || url.contains("localhost")) {
                         return false; // 在 App 内打开
                     }
-                    // 外部链接用浏览器
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                     return true;
@@ -100,12 +99,13 @@ public class MainActivity extends AppCompatActivity {
             android.R.color.holo_green_light,
             android.R.color.holo_orange_light
         );
+        // 彻底禁用下拉刷新手势（由页面内的刷新按钮替代）
+        swipeRefresh.setEnabled(false);
 
         // 加载 App
         webView.loadUrl(APP_URL);
     }
 
-    // 捕获后退键
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
@@ -115,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 
-    // 网络错误处理
     private void showNetworkErrorDialog() {
         new AlertDialog.Builder(this)
             .setTitle("网络错误")
