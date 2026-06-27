@@ -29,28 +29,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2
+
       - name: Inject App URL into source
         run: |
-          if [ -n "${{ github.event.inputs.app_url }}" ]; then
-            APP_URL="${{ github.event.inputs.app_url }}"
-          else
-            APP_URL="http://47.101.171.145/app"
-          fi
+          APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
           echo "Building with APP_URL=$APP_URL"
           sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
             apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
 
-      - name: Generate Gradle Wrapper
-        run: |
-          cd apps/dsa-android
-          # Use gradle from setup-java to generate wrapper
-          gradle wrapper --gradle-version=8.2
-          chmod +x gradlew
-
       - name: Build APK (Release)
         run: |
           cd apps/dsa-android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          gradle assembleRelease --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
