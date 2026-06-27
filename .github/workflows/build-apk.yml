@@ -43,30 +43,28 @@ jobs:
           curl -sL https://services.gradle.org/distributions/gradle-8.2-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-8.2/bin" >> $GITHUB_PATH
-          gradle --version
 
       - name: Build APK
         run: |
           cd apps/dsa-android
           export ANDROID_HOME=$ANDROID_SDK_ROOT
-          export ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms"
-          ls $ANDROID_HOME/build-tools/ 2>/dev/null || echo "No build-tools"
-          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          echo "EXIT_CODE=$?"
+          gradle assembleRelease --no-daemon --stacktrace 2>&1
+          echo "=== CHECKING APK ==="
+          find /home -name "*.apk" 2>/dev/null
+          find . -name "*.apk" 2>/dev/null
+          ls -la app/build/outputs/ 2>/dev/null || echo "No outputs dir"
 
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: build-log
-          path: /tmp/build.log
+          path: /opt/gradle-8.2/build.log
           retention-days: 7
 
-      - uses: actions/upload-artifact@v4
-        if: success()
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: dsa-app-release
-          path: apps/dsa-android/app/build/outputs/apk/release/*.apk
+          path: |
+            apps/dsa-android/app/build/outputs/apk/release/*.apk
+            apps/dsa-android/app/build/outputs/**/*.apk
           retention-days: 30
