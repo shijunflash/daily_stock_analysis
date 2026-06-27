@@ -9,38 +9,48 @@ on:
         default: 'http://47.101.171.145/app'
         type: string
   push:
+    branches: [main]
     paths:
       - 'apps/dsa-android/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/dsa-android
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: 17
 
-      - name: Inject App URL
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Inject URL
         run: |
           APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
           sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
-            app/src/main/java/com/dsa/app/MainActivity.java
+            apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
+
+      - name: Install SDK
+        run: |
+          echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --install "platforms;android-34" "build-tools;34.0.0" 2>&1 || true
+          echo "y" | $ANDROID_HOME/tools/bin/sdkmanager --licenses 2>&1 || true
+
+      - name: Generate wrapper
+        run: |
+          cd apps/dsa-android
+          gradle wrapper --gradle-version 8.2
 
       - name: Build APK
-        uses: digreatbrian/build-apk@v1.1
-        with:
-          working-directory: apps/dsa-android
+        run: |
+          cd apps/dsa-android
+          export ANDROID_HOME=$ANDROID_SDK_ROOT
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -30
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: dsa-app-release
