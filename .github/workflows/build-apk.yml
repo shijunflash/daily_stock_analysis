@@ -35,23 +35,34 @@ jobs:
       - name: Inject URL
         run: |
           APP_URL="${{ github.event.inputs.app_url || 'http://47.101.171.145/app' }}"
-          echo "URL: $APP_URL"
           sed -i "s|String APP_URL = \".*\";|String APP_URL = \"$APP_URL\";|g" \
             apps/dsa-android/app/src/main/java/com/dsa/app/MainActivity.java
 
-      - name: Install Gradle via sdkman
+      - name: Install Gradle
         run: |
-          curl -s "https://get.sdkman.io" | bash 2>/dev/null
-          source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk install gradle 8.2 2>&1 | tail -5
+          curl -sL https://services.gradle.org/distributions/gradle-8.2-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.2/bin" >> $GITHUB_PATH
+          gradle --version
 
       - name: Build APK
         run: |
-          source "$HOME/.sdkman/bin/sdkman-init.sh"
           cd apps/dsa-android
           export ANDROID_HOME=$ANDROID_SDK_ROOT
-          gradle wrapper --gradle-version 8.2
-          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tail -30
+          export ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms"
+          ls $ANDROID_HOME/build-tools/ 2>/dev/null || echo "No build-tools"
+          gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          echo "EXIT_CODE=$?"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: /tmp/build.log
+          retention-days: 7
 
       - uses: actions/upload-artifact@v4
         if: success()
